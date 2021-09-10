@@ -8,8 +8,7 @@
  */
 
 import {exec, ExecException, ExecOptions} from 'child_process';
-import {crashlogger} from "../lib/crashlogger";
-import {FS} from "../lib/fs";
+import {crashlogger, FS, Utils} from "../lib";
 
 const MONITOR_CLEAN_TIMEOUT = 2 * 60 * 60 * 1000;
 
@@ -63,7 +62,6 @@ export const Monitor = new class {
 	networkUse: {[k: string]: number} = {};
 	networkCount: {[k: string]: number} = {};
 	hotpatchLock: {[k: string]: {by: string, reason: string}} = {};
-	hotpatchVersions: {[k: string]: string | undefined} = {};
 
 	TimedCounter = TimedCounter;
 
@@ -72,20 +70,20 @@ export const Monitor = new class {
 	/**
 	 * Inappropriate userid : number of times the name has been forcerenamed
 	 */
-	readonly forceRenames = new Map<ID, number>();
+	readonly forceRenames = new Utils.Multiset<ID>();
 
 	/*********************************************************
 	 * Logging
 	 *********************************************************/
-	crashlog(error: Error, source = 'The main process', details: AnyObject | null = null) {
-		if (!error) error = {} as any;
+	crashlog(err: any, source = 'The main process', details: AnyObject | null = null) {
+		const error = (err || {}) as Error;
 		if ((error.stack || '').startsWith('@!!@')) {
 			try {
 				const stack = (error.stack || '');
 				const nlIndex = stack.indexOf('\n');
 				[error.name, error.message, source, details] = JSON.parse(stack.slice(4, nlIndex));
 				error.stack = stack.slice(nlIndex + 1);
-			} catch (e) {}
+			} catch {}
 		}
 		const crashType = crashlogger(error, source, details);
 		Rooms.global.reportCrash(error, source);
@@ -134,6 +132,15 @@ export const Monitor = new class {
 
 	notice(text: string) {
 		if (Config.loglevel <= 2) console.log(text);
+	}
+
+	slow(text: string) {
+		const logRoom = Rooms.get('slowlog');
+		if (logRoom) {
+			logRoom.add(`|c|&|/log ${text}`).update();
+		} else {
+			this.warn(text);
+		}
 	}
 
 	/*********************************************************
@@ -342,7 +349,7 @@ export const Monitor = new class {
 
 			await this.sh(`git reset`, options);
 			await index.unlinkIfExists();
-		} catch (err) {}
+		} catch {}
 		return hash;
 	}
 };

@@ -22,6 +22,7 @@ export const translations: Translations = {
 		"&amp; <strong>Global Administrator</strong> - They can do anything, like change what this message says and promote users globally": "<strong>グローバルアドミニストレーター</strong>(&amp;)：何でもできる。この文章も編集できる。",
 
 		"<strong>Room ranks</strong>": "<strong>日本語部屋のユーザーランク</strong>",
+		"^ <strong>Prize Winner</strong> - They don't have any powers beyond a symbol.": "",
 		"+ <strong>Voice</strong> - They can use ! commands like !groups": "<strong>ボイス</strong>(+)：「!コマンド」を使ってコマンドの結果を部屋に表示することができる。",
 		"% <strong>Driver</strong> - The above, and they can mute and warn": "<strong>ドライバー</strong>(%)：上記に加えて警告メッセージを出したりユーザーを短時間喋れなく（ミュート）することができる。",
 		"@ <strong>Moderator</strong> - The above, and they can room ban users": "<strong>モデレータ</strong>(@)：上記に加えてユーザーを部屋からBANすることができる。",
@@ -126,6 +127,7 @@ export const translations: Translations = {
 		"This ${Config.groups[targetUser.group].name} is too busy to answer private messages right now. Please contact a different staff member.": "",
 		"If you need help, try opening a <a href=\"view-help-request\" class=\"button\">help ticket</a>": "",
 		"You are blocking private messages right now.": "",
+		"You are blocking challenges right now.": "",
 
 		"Your message contained banned words in this room.": "メッセージにこの部屋の禁止ワードが入っています。",
 		"You can't send the same message again so soon.": "高頻度で同じメッセージを送ることはできません。",
@@ -141,6 +143,8 @@ export const translations: Translations = {
 		"You are already blocking challenges!": "すでに対戦の申し込みをブロックしています。",
 		"You are already available for challenges!": "現在対戦の申し込みをブロックしていません。",
 		"You are available for challenges from now on.": "対戦の申し込みのブロックを解除しました。",
+		"You are now blocking challenges, except from staff and ${rank}.": "",
+		"You are now blocking challenges, except from staff and ${status} users.": "",
 
 		"Staff FAQ": "",
 		"You cannot broadcast all FAQs at once.": "",
@@ -156,5 +160,10 @@ export const translations: Translations = {
 		"pages/ladderhelp": "pages/ladderhelp",
 		"pages/rng": "pages/rng",
 		"pages/staff": "pages/staff",
+
+		"- We log PMs so you can report them - staff can't look at them without permission unless there's a law enforcement reason.": "",
+		"- We log IPs to enforce bans and mutes.": "",
+		"- We use cookies to save your login info and teams, and for Google Analytics and AdSense.": "",
+		'- For more information, you can read our <a href="https://${Config.routes.root}/privacy">full privacy policy.</a>': '',
 	},
 };
