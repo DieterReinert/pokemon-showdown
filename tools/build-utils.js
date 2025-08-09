@@ -2,7 +2,24 @@
 
 const fs = require("fs");
 const child_process = require("child_process");
-const esbuild = require('esbuild');
+const path = require("path");
+const { transform } = require("oxc-transform");
+
+function rewriteRelativeSpecifiersToJs(code) {
+	const addJsExt = spec => {
+		if (/^(\.{1,2}\/)/.test(spec) && !/\.(js|mjs|cjs|json)$/.test(spec)) return spec + '.js';
+		return spec;
+	};
+	// import ... from '...'
+	code = code.replace(/(import\s+[^'";]*?from\s*)(["'])([^"']+?)\2/g, (m, p1, q, spec) => p1 + q + addJsExt(spec) + q);
+	// side-effect import '...'
+	code = code.replace(/(^|[;\n\r\t ])import\s*(["'])([^"']+?)\2/g, (m, pfx, q, spec) => pfx + 'import ' + q + addJsExt(spec) + q);
+	// // export ... from '...'
+	code = code.replace(/(export\s+[^'";]*?from\s*)(["'])([^"']+?)\2/g, (m, p1, q, spec) => p1 + q + addJsExt(spec) + q);
+	// dynamic import('...')
+	code = code.replace(/import\(\s*(["'])([^"']+?)\1\s*\)/g, (m, q, spec) => 'import(' + q + addJsExt(spec) + q + ')');
+	return code;
+}
 
 const copyOverDataJSON = (file = 'data') => {
 	const files = fs.readdirSync(file);
@@ -10,7 +27,9 @@ const copyOverDataJSON = (file = 'data') => {
 		if (fs.statSync(`${file}/${f}`).isDirectory()) {
 			copyOverDataJSON(`${file}/${f}`);
 		} else if (f.endsWith('.json')) {
-			fs.copyFileSync(`${file}/${f}`, require('path').resolve('dist', `${file}/${f}`));
+			const dest = path.resolve('dist', `${file}/${f}`);
+			fs.mkdirSync(path.dirname(dest), { recursive: true });
+			fs.copyFileSync(`${file}/${f}`, dest);
 		}
 	}
 };
@@ -41,20 +60,46 @@ const findFilesForPath = path => {
 	return out;
 };
 
-exports.transpile = decl => {
-	esbuild.buildSync({
-		entryPoints: findFilesForPath('./'),
-		outdir: './dist',
-		outbase: '.',
-		format: 'cjs',
-		tsconfig: './tsconfig.json',
-		sourcemap: true,
-	});
-	fs.copyFileSync('./config/config-example.js', './dist/config/config-example.js');
+exports.transpile = (force, decl) => {
+	const entries = findFilesForPath('./');
+	for (const inFile of entries) {
+		const source = fs.readFileSync(inFile, 'utf8');
+		const isTSX = inFile.endsWith('.tsx');
+
+		const result = transform(inFile, source, {
+			sourcemap: true,
+			target: 'es2020',
+			lang: isTSX ? 'tsx' : 'ts',
+			assumptions: { setPublicClassFields: true },
+			typescript: { removeClassFieldsWithoutInitializer: true, rewriteImportExtensions: 'rewrite' },
+			jsx: isTSX ? { runtime: 'classic', pragma: 'Chat.h', pragmaFrag: 'Chat.Fragment' } : undefined,
+		});
+
+		const outPath = path.resolve('dist', inFile).replace(/\.(ts|tsx)$/i, '.js');
+		fs.mkdirSync(path.dirname(outPath), { recursive: true });
+
+		let code = result && result.code != null ? String(result.code) : '';
+		code = rewriteRelativeSpecifiersToJs(code);
+		const map = result && result.map != null ? result.map : null;
+
+		if (map && !/\/# sourceMappingURL=/.test(code)) {
+			const mapFileName = path.basename(outPath) + '.map';
+			code += (code.endsWith('\n') ? '' : '\n') + `//# sourceMappingURL=${mapFileName}` + '\n';
+		}
+
+		fs.writeFileSync(outPath, code);
+		if (map) {
+			const mapText = typeof map === 'string' ? map : JSON.stringify(map);
+			fs.writeFileSync(outPath + '.map', mapText);
+		}
+	}
+
+	const configDest = './dist/config/config-example.js';
+	fs.mkdirSync(path.dirname(configDest), { recursive: true });
+	fs.copyFileSync('./config/config-example.js', configDest);
 	copyOverDataJSON();
 
-	// NOTE: replace is asynchronous - add additional replacements for the same path in one call instead of making multiple calls.
-	if (decl) {
+	if (force) {
 		exports.buildDecls();
 	}
 };

@@ -36,7 +36,7 @@ config.fakeladder = false;
 // Don't log monitor messages to the console (necessary so that chat monitor tests don't clog up stdout)
 config.loglevel = 3;
 
-require('./../dist/lib/process-manager').ProcessManager.disabled = true;
+process.env.PS_DISABLE_PM = '1';
 
 // stop chatrooms from loading through modifying the require cache
 try {
@@ -44,15 +44,20 @@ try {
 	chatrooms.splice(0, chatrooms.length);
 } catch {}
 
-// Don't create a REPL
-require('../dist/lib/repl').Repl.start = noop;
+const serverReady = (async () => {
+	try {
+		const { Repl } = await import('../dist/lib/repl.js');
+		Repl.start = noop;
+	} catch {}
+	await import('../dist/server.js');
+})();
 
-// Start the server.
-// NOTE: This used "server" before when we needed "server"
-require('../dist/server');
-
-LoginServer.disabled = true;
-Ladders.disabled = true;
+before(async function server_setup() {
+	this.timeout(0);
+	await serverReady;
+	LoginServer.disabled = true;
+	Ladders.disabled = true;
+});
 
 before('initialization', function () {
 	this.timeout(0); // Remove timeout limitation

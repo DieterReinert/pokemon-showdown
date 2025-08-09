@@ -779,3 +779,8 @@ export class RawProcessManager extends ProcessManager<RawProcessWrapper> {
 		});
 	}
 }
+
+// Allow tests and other environments to disable process spawning without importing this module twice
+if (process?.env?.PS_DISABLE_PM === '1') {
+	ProcessManager.disabled = true;
+}
