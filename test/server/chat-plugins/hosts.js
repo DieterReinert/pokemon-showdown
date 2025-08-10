@@ -6,7 +6,10 @@
 'use strict';
 
 const assert = require('assert').strict;
-const hosts = require('../../../dist/server/chat-plugins/hosts');
+let hosts;
+before(async () => {
+	hosts = await import('../../../dist/server/chat-plugins/hosts.js');
+});
 
 describe("Hosts plugin", () => {
 	it('should properly visualize an empty list of ranges', () => {

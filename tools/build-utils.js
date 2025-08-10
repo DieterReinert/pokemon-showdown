@@ -5,19 +5,24 @@ const child_process = require("child_process");
 const path = require("path");
 const { transform } = require("oxc-transform");
 
-function rewriteRelativeSpecifiersToJs(code) {
-	const addJsExt = spec => {
-		if (/^(\.{1,2}\/)/.test(spec) && !/\.(js|mjs|cjs|json)$/.test(spec)) return spec + '.js';
-		return spec;
+function rewriteRelativeSpecifiersToJs(code, filename) {
+	const resolveSpecifier = spec => {
+		if (!spec.startsWith('.') || /\.(js|mjs|cjs|json)$/.test(spec)) return spec;
+		const abs = path.resolve(path.dirname(filename), spec);
+		try {
+			const stat = fs.statSync(abs);
+			if (stat.isDirectory()) return spec.replace(/\/?$/, '/index.js');
+		} catch {}
+		return spec + '.js';
 	};
 	// import ... from '...'
-	code = code.replace(/(import\s+[^'";]*?from\s*)(["'])([^"']+?)\2/g, (m, p1, q, spec) => p1 + q + addJsExt(spec) + q);
+	code = code.replace(/(import\s+[^'";]*?from\s*)(["'])([^"']+?)\2/g, (m, p1, q, spec) => p1 + q + resolveSpecifier(spec) + q);
 	// side-effect import '...'
-	code = code.replace(/(^|[;\n\r\t ])import\s*(["'])([^"']+?)\2/g, (m, pfx, q, spec) => pfx + 'import ' + q + addJsExt(spec) + q);
-	// // export ... from '...'
-	code = code.replace(/(export\s+[^'";]*?from\s*)(["'])([^"']+?)\2/g, (m, p1, q, spec) => p1 + q + addJsExt(spec) + q);
+	code = code.replace(/(^|[;\n\r\t ])import\s*(["'])([^"']+?)\2/g, (m, pfx, q, spec) => pfx + 'import ' + q + resolveSpecifier(spec) + q);
+	// export ... from '...'
+	code = code.replace(/(export\s+[^'";]*?from\s*)(["'])([^"']+?)\2/g, (m, p1, q, spec) => p1 + q + resolveSpecifier(spec) + q);
 	// dynamic import('...')
-	code = code.replace(/import\(\s*(["'])([^"']+?)\1\s*\)/g, (m, q, spec) => 'import(' + q + addJsExt(spec) + q + ')');
+	code = code.replace(/import\(\s*(["'])([^"']+?)\1\s*\)/g, (m, q, spec) => 'import(' + q + resolveSpecifier(spec) + q + ')');
 	return code;
 }
 
@@ -79,7 +84,7 @@ exports.transpile = (force, decl) => {
 		fs.mkdirSync(path.dirname(outPath), { recursive: true });
 
 		let code = result && result.code != null ? String(result.code) : '';
-		code = rewriteRelativeSpecifiersToJs(code);
+		code = rewriteRelativeSpecifiersToJs(code, inFile);
 		const map = result && result.map != null ? result.map : null;
 
 		if (map && !/\/# sourceMappingURL=/.test(code)) {

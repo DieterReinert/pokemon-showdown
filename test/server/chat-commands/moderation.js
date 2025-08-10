@@ -6,7 +6,11 @@
 'use strict';
 
 const assert = require('assert').strict;
-const moderation = require('../../../dist/server/chat-commands/moderation');
+let moderation;
+
+before(async () => {
+	moderation = (await import('../../../dist/server/chat-commands/moderation.js'));
+});
 
 const { makeUser } = require('../../users-utils');
 

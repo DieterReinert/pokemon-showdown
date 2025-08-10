@@ -6,7 +6,10 @@
 
 'use strict';
 const assert = require('assert').strict;
-const Responder = require('../../../dist/server/chat-plugins/responder').AutoResponder;
+let Responder;
+before(async () => {
+	({ AutoResponder: Responder } = await import('../../../dist/server/chat-plugins/responder.js'));
+});
 const room = Rooms.createChatRoom('etheria');
 const Help = new Responder(room);
 

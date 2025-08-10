@@ -1,14 +1,15 @@
 "use strict";
-const { SQL } = require('../../dist/lib/sql');
 const assert = require('../assert').strict;
 const common = require('../common');
 
-const database = SQL(module, { file: `:memory:`, processes: 1 });
+let database;
 
 (common.hasModule('better-sqlite3') ? describe : describe.skip)(`SQLite worker wrapper`, () => {
 	// prepare statements and set up table
 	let select, insert;
 	before(async () => {
+		const { SQL } = await import('../../dist/lib/sql.js');
+		database = SQL(module, { file: `:memory:`, processes: 1 });
 		await database.exec(`CREATE TABLE IF NOT EXISTS test (col TEXT, col2 TEXT)`);
 		select = await database.prepare(`SELECT * FROM test`);
 		insert = await database.prepare(`INSERT INTO test (col, col2) VALUES (?, ?)`);

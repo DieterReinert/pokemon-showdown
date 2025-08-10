@@ -3,8 +3,8 @@
 const path = require('path');
 const fs = require('fs');
 const assert = require('./assert');
-const Sim = require('./../dist/sim');
-const Dex = Sim.Dex;
+let Sim;
+let Dex;
 
 const cache = new Map();
 const formatsCache = new Map();
@@ -21,9 +21,6 @@ const DEFAULT_SEED = 'gen5,99176924e1c86af0';
 class TestTools {
 	constructor(mod = 'base') {
 		this.currentMod = mod;
-		this.dex = Dex.mod(mod);
-
-		this.modPrefix = this.dex.isBase ? `[gen9] ` : `[${mod}] `;
 	}
 
 	mod(mod) {
@@ -63,7 +60,7 @@ class TestTools {
 		].filter(Boolean);
 		const customRulesID = customRules.length ? `@@@${customRules.join(',')}` : ``;
 
-		let modPrefix = this.modPrefix;
+		let modPrefix = this.dex.isBase ? `[gen9] ` : `[${this.currentMod}] `;
 		if (this.currentMod === 'gen1stadium') basicFormat = 'OU';
 		if (gameType === 'multi') {
 			basicFormat = 'randombattle';
@@ -156,3 +153,18 @@ class TestTools {
 const common = exports = module.exports = new TestTools();
 cache.set('base', common);
 cache.set('gen9', common);
+
+Object.defineProperty(TestTools.prototype, 'dex', {
+	get() {
+		if (!Dex) throw new Error('Dex not loaded yet');
+		return Dex.mod(this.currentMod);
+	},
+});
+
+before(async () => {
+	const moduleNS = await import('../dist/sim/index.js');
+	Sim = moduleNS;
+	Dex = moduleNS.Dex;
+	global.Dex = Dex;
+	global.TeamValidator = moduleNS.TeamValidator;
+});

@@ -48,8 +48,8 @@ assert.atMost = function (value, threshold, message) {
 };
 
 assert.legalTeam = function (team, formatName, message) {
-	require('../dist/sim/dex').Dex.formats.validate(formatName);
-	const format = require('../dist/sim/team-validator').TeamValidator.get(formatName);
+	global.Dex.formats.validate(formatName);
+	const format = global.TeamValidator.get(formatName);
 	// console.log(`${formatName}: ${[...format.ruleTable.keys()].join(', ')}`);
 	const actual = format.validateTeam(team);
 	if (actual === null) return;

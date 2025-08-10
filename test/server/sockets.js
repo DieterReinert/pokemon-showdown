@@ -1,7 +1,11 @@
 'use strict';
 
 const assert = require('../assert');
-const { extractChannelMessages } = require('../../dist/sim/battle');
+let extractChannelMessages;
+
+before(async () => {
+	({ extractChannelMessages } = await import('../../dist/sim/battle.js'));
+});
 
 describe('ServerStream', () => {
 	const omniscientPlayer = -1;

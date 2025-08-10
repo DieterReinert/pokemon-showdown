@@ -5,8 +5,11 @@
 'use strict';
 
 const assert = require('../../assert').strict;
+let datasearch;
 
-const datasearch = require('../../../dist/server/chat-plugins/datasearch');
+before(async () => {
+	datasearch = await import('../../../dist/server/chat-plugins/datasearch.js');
+});
 
 describe("Datasearch Plugin", () => {
 	it('should return pokemon with pivot moves', async () => {

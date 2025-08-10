@@ -7,8 +7,11 @@
 
 const assert = require('assert').strict;
 const { makeUser } = require('../../users-utils');
+let Filters;
 
-const { Filters } = require('../../../dist/server/chat-plugins/chat-monitor');
+before(async () => {
+	({ Filters } = await import('../../../dist/server/chat-plugins/chat-monitor.js'));
+});
 
 describe('Chat monitor', () => {
 	describe('regex generator', () => {

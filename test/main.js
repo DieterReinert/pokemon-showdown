@@ -3,6 +3,7 @@
 require('child_process').execSync('node "' + __dirname + '/../build"');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 const noop = () => {};
 
@@ -44,17 +45,69 @@ try {
 	chatrooms.splice(0, chatrooms.length);
 } catch {}
 
-const serverReady = (async () => {
+const prewarmDistModules = async () => {
+	const testRoot = __dirname;
+	const distRoot = path.resolve(__dirname, '../dist');
+	/** @type {Set<string>} */
+	const specSet = new Set();
+	const readAll = dir => {
+		for (const name of fs.readdirSync(dir)) {
+			const p = path.join(dir, name);
+			const st = fs.statSync(p);
+			if (st.isDirectory()) {
+				readAll(p);
+				continue;
+			}
+			if (!p.endsWith('.js')) continue;
+			const src = fs.readFileSync(p, 'utf8');
+			const re = /require\((['"])((?:\.\.\/)+)dist\/([^'")]+)\1\)/g;
+			let m;
+			while ((m = re.exec(src))) {
+				// capture path relative to dist/
+				specSet.add(m[3]);
+			}
+		}
+	};
+	readAll(testRoot);
+	const toJsFile = rel => {
+		let abs = path.resolve(distRoot, rel);
+		try {
+			const st = fs.statSync(abs);
+			if (st.isDirectory()) return path.join(abs, 'index.js');
+		} catch {}
+		if (!/\.(js|mjs|cjs)$/.test(abs)) abs += '.js';
+		return abs;
+	};
+	for (const rel of specSet) {
+		const absFile = toJsFile(rel);
+		try {
+			const ns = await import(pathToFileURL(absFile).href);
+			// Seed require cache for the resolved filename so require() returns the ESM namespace
+			require.cache[absFile] = {
+				id: absFile,
+				filename: absFile,
+				loaded: true,
+				exports: ns,
+				require,
+				children: [],
+				paths: [],
+			};
+		} catch {}
+	}
+};
+
+const serverReady = async () => {
+	await prewarmDistModules();
 	try {
 		const { Repl } = await import('../dist/lib/repl.js');
 		Repl.start = noop;
 	} catch {}
-	await import('../dist/server.js');
-})();
+	await import('../dist/server/index.js');
+};
 
 before(async function server_setup() {
 	this.timeout(0);
-	await serverReady;
+	await serverReady();
 	LoginServer.disabled = true;
 	Ladders.disabled = true;
 });

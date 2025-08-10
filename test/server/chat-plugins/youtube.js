@@ -4,7 +4,10 @@
  * @author mia-pi-git
  */
 'use strict';
-const YoutubeInterface = require('../../../dist/server/chat-plugins/youtube').YoutubeInterface;
+let YoutubeInterface;
+before(async () => {
+	({ YoutubeInterface } = await import('../../../dist/server/chat-plugins/youtube.js'));
+});
 const assert = require('../../assert');
 
 describe(`Youtube features`, () => {

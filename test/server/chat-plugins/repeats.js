@@ -6,7 +6,10 @@
 'use strict';
 
 const assert = require('assert').strict;
-const Repeats = require('../../../dist/server/chat-plugins/repeats').Repeats;
+let Repeats;
+before(async () => {
+	({ Repeats } = await import('../../../dist/server/chat-plugins/repeats.js'));
+});
 
 describe("Repeats plugin", function () {
 	before(() => {

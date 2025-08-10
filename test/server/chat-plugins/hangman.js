@@ -1,6 +1,9 @@
 'use strict';
 
-const { Hangman } = require('../../../dist/server/chat-plugins/hangman');
+let Hangman;
+before(async () => {
+	({ Hangman } = await import('../../../dist/server/chat-plugins/hangman.js'));
+});
 const { makeUser, destroyUser } = require('../../users-utils');
 const assert = require('../../assert');
 
