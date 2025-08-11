@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 "use strict";
 
-try {
-	// fetch was introduced in Node 18, which is EOL,
-	// so we'll ask for the most recent "Active LTS" with it to be safe
-	// https://nodejs.org/en/about/previous-releases
-	fetch;
-} catch (e) {
+// Enforce Node.js >= 22 explicitly
+var nodeVersion = process.versions && process.versions.node ? process.versions.node : process.version;
+var nodeMajor = parseInt((nodeVersion || "").replace(/^v/, '').split('.')[0], 10);
+if (!Number.isFinite(nodeMajor) || nodeMajor < 22) {
 	console.error("We require Node.js version 22 or later; you're using " + process.version);
 	process.exit(1);
 }
